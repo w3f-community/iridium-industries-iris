@@ -1,7 +1,12 @@
 use super::*;
-use frame_support::{assert_noop, assert_ok};
+use frame_support::{assert_ok};
 use mock::*;
 use sp_core::Pair;
+use sp_core::{
+	offchain::{testing, OffchainWorkerExt, TransactionPoolExt}
+};
+use sp_keystore::{testing::KeyStore, KeystoreExt, SyncCryptoStore};
+use std::sync::Arc;
 
 // fn new_block() -> u64 {
 // 	let number = frame_system::Pallet::<Test>::block_number() + 1;
@@ -14,7 +19,7 @@ use sp_core::Pair;
 // 		&Default::default(),
 // 		frame_system::InitKind::Full,
 // 	);
-// 	Iris::on_initialize(number)
+// 	crate::on_initialize(number)
 // }
 
 #[test]
@@ -128,7 +133,6 @@ fn iris_submit_ipfs_add_results_works_for_valid_values() {
 fn iris_mint_tickets_works_for_valid_values() {
 	// GIVEN: I am a valid Iris node with a positive valance
 	let (p, _) = sp_core::sr25519::Pair::generate();
-	let (p, _) = sp_core::sr25519::Pair::generate();
 	let cid_vec = "QmPZv7P8nQUSh2CpqTvUeYemFyjvMjgWEs8H1Tm8b3zAm9".as_bytes().to_vec();
 	let balance = 1;
 	let id = 1;
@@ -167,13 +171,76 @@ fn iris_submit_rpc_ready_works_for_valid_values() {
 	});
 }
 
-// #[test]
-// fn iris_purchase_tickets_works_for_valid_values() {
-// 	let (p, _) = sp_core::sr25519::Pair::generate();
-// 	new_test_ext_funded(p.clone()).execute_with(|| {
-// 		assert_ok!(Iris::purchase_ticket(
-// 			Origin::signed(p.clone().public()),
-// 			p.clone().public(),
-// 		));
-// 	});
-// }
+// test OCW functionality
+// can add bytes to network
+
+#[test]
+fn iris_can_add_bytes_to_ipfs() {
+	let (p, _) = sp_core::sr25519::Pair::generate();
+	let (offchain, state) = testing::TestOffchainExt::new();
+	let (pool, _) = testing::TestTransactionPoolExt::new();
+	const PHRASE: &str =
+		"news slush supreme milk chapter athlete soap sausage put clutch what kitten";
+	let keystore = KeyStore::new();
+	SyncCryptoStore::sr25519_generate_new(
+		&keystore,
+		crate::KEY_TYPE,
+		Some(&format!("{}/hunter1", PHRASE)),
+	)
+	.unwrap();
+
+	let mut t = new_test_ext_funded(p.clone());
+	t.register_extension(OffchainWorkerExt::new(offchain));
+	t.register_extension(TransactionPoolExt::new(pool));
+	t.register_extension(KeystoreExt(Arc::new(keystore)));
+
+	let multiaddr_vec = "/ip4/127.0.0.1/tcp/4001/p2p/12D3KooWMvyvKxYcy9mjbFbXcogFSCvENzQ62ogRxHKZaksFCkAp".as_bytes().to_vec();
+	let cid_vec = "QmPZv7P8nQUSh2CpqTvUeYemFyjvMjgWEs8H1Tm8b3zAm9".as_bytes().to_vec();
+	let bytes = "hello test".as_bytes().to_vec();
+	let name: Vec<u8> = "test.txt".as_bytes().to_vec();
+	// let cost = 1;
+	let id = 1;
+	let balance = 1;
+	// mock IPFS calls
+	{	
+		let mut state = state.write();
+		// connect to external node
+		state.expect_ipfs_request(testing::IpfsPendingRequest {
+			response: Some(IpfsResponse::Success),
+			..Default::default()
+		});
+		// fetch data
+		state.expect_ipfs_request(testing::IpfsPendingRequest {
+			id: sp_core::offchain::IpfsRequestId(0),
+			response: Some(IpfsResponse::CatBytes(bytes.clone())),
+			..Default::default()
+		});
+		// disconnect from the external node
+		state.expect_ipfs_request(testing::IpfsPendingRequest {
+			response: Some(IpfsResponse::Success),
+			..Default::default()
+		});
+		// add bytes to your local node 
+		state.expect_ipfs_request(testing::IpfsPendingRequest {
+			response: Some(IpfsResponse::AddBytes(cid_vec.clone())),
+			..Default::default()
+		});
+	}
+
+	t.execute_with(|| {
+		// WHEN: I invoke the create_storage_assets extrinsic
+		assert_ok!(Iris::create_storage_asset(
+			Origin::signed(p.clone().public()),
+			p.clone().public(),
+			multiaddr_vec.clone(),
+			cid_vec.clone(),
+			name.clone(),
+			id.clone(),
+			balance.clone(),
+		));
+		// THEN: the offchain worker adds data to IPFS
+		assert_ok!(Iris::handle_data_requests());
+	});
+}
+
+// can fetch bytes and add to offchain storage
