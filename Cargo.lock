@@ -3032,7 +3032,7 @@ dependencies = [
 [[package]]
 name = "ipfs"
 version = "0.2.1"
-source = "git+https://github.com/rs-ipfs/rust-ipfs?branch=master#111f116e366e8f3f9b409d1c92be6ac51f7009f4"
+source = "git+https://github.com/rs-ipfs/rust-ipfs?branch=master#3eff4e15342d430870bfa4fad7c2604c865266b2"
 dependencies = [
  "anyhow",
  "async-stream",
@@ -3106,7 +3106,7 @@ dependencies = [
 [[package]]
 name = "ipfs-bitswap"
 version = "0.1.0"
-source = "git+https://github.com/rs-ipfs/rust-ipfs?branch=master#111f116e366e8f3f9b409d1c92be6ac51f7009f4"
+source = "git+https://github.com/rs-ipfs/rust-ipfs?branch=master#3eff4e15342d430870bfa4fad7c2604c865266b2"
 dependencies = [
  "cid 0.5.1",
  "fnv",
@@ -3146,7 +3146,7 @@ dependencies = [
 [[package]]
 name = "ipfs-unixfs"
 version = "0.2.0"
-source = "git+https://github.com/rs-ipfs/rust-ipfs?branch=master#111f116e366e8f3f9b409d1c92be6ac51f7009f4"
+source = "git+https://github.com/rs-ipfs/rust-ipfs?branch=master#3eff4e15342d430870bfa4fad7c2604c865266b2"
 dependencies = [
  "cid 0.5.1",
  "either",
@@ -4993,6 +4993,7 @@ dependencies = [
  "frame-benchmarking-cli",
  "jsonrpc-core",
  "node-template-runtime",
+ "pallet-im-online",
  "pallet-iris-rpc",
  "pallet-transaction-payment-rpc",
  "sc-basic-authorship",
@@ -5040,9 +5041,12 @@ dependencies = [
  "pallet-aura",
  "pallet-balances",
  "pallet-grandpa",
- "pallet-iris",
+ "pallet-im-online",
+ "pallet-iris-assets",
  "pallet-iris-rpc-runtime-api",
+ "pallet-iris-session",
  "pallet-randomness-collective-flip",
+ "pallet-session",
  "pallet-sudo",
  "pallet-timestamp",
  "pallet-transaction-payment",
@@ -5849,8 +5853,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "pallet-iris"
-version = "3.0.0"
+name = "pallet-iris-assets"
+version = "1.0.0"
 dependencies = [
  "frame-benchmarking",
  "frame-support",
@@ -5887,11 +5891,34 @@ dependencies = [
 name = "pallet-iris-rpc-runtime-api"
 version = "4.0.0-dev"
 dependencies = [
- "pallet-iris",
+ "pallet-iris-session",
  "parity-scale-codec",
  "sp-api",
  "sp-core",
  "sp-runtime",
+]
+
+[[package]]
+name = "pallet-iris-session"
+version = "1.0.0"
+dependencies = [
+ "frame-benchmarking",
+ "frame-support",
+ "frame-system",
+ "log 0.4.14",
+ "pallet-assets",
+ "pallet-balances",
+ "pallet-im-online",
+ "pallet-iris-assets",
+ "pallet-session",
+ "parity-scale-codec",
+ "scale-info",
+ "sp-core",
+ "sp-io",
+ "sp-keystore",
+ "sp-runtime",
+ "sp-staking",
+ "sp-std",
 ]
 
 [[package]]

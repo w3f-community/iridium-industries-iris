@@ -37,6 +37,7 @@ sc-client-api = { version = "4.0.0-dev", path = "../../../client/api" }
 sp-runtime = { version = "4.0.0-dev", path = "../../../primitives/runtime" }
 sp-timestamp = { version = "4.0.0-dev", path = "../../../primitives/timestamp" }
 sp-keystore = { version = "0.10.0-dev", path = "../../../primitives/keystore" }
+pallet-im-online = { version = "4.0.0-dev", default-features = false, path = "../../../frame/im-online" }
 
 # These dependencies are used for the node template's RPCs
 jsonrpc-core = "18.0.0"
@@ -48,7 +49,7 @@ sp-block-builder = { version = "4.0.0-dev", path = "../../../primitives/block-bu
 sc-basic-authorship = { version = "0.10.0-dev", path = "../../../client/basic-authorship" }
 substrate-frame-rpc-system = { version = "4.0.0-dev", path = "../../../utils/frame/rpc/system" }
 pallet-transaction-payment-rpc = { version = "4.0.0-dev", path = "../../../frame/transaction-payment/rpc/" }
-pallet-iris-rpc = { version = "4.0.0-dev", path = "../pallets/template/rpc/" }
+pallet-iris-rpc = { version = "4.0.0-dev", path = "../pallets/iris-session/rpc/" }
 
 # These dependencies are used for runtime benchmarking
 frame-benchmarking = { version = "4.0.0-dev", path = "../../../frame/benchmarking" }

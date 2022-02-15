@@ -14,8 +14,18 @@ use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_core::{crypto::KeyTypeId, OpaqueMetadata, Encode, Bytes};
 use sp_runtime::{
 	create_runtime_str, generic, impl_opaque_keys,
-	traits::{AccountIdLookup, BlakeTwo256, Block as BlockT, IdentifyAccount, NumberFor, Verify, SaturatedConversion },
-	transaction_validity::{TransactionSource, TransactionValidity},
+	traits::{
+		AccountIdLookup, 
+		BlakeTwo256, 
+		Block as BlockT, 
+		IdentifyAccount, 
+		NumberFor, 
+		Verify, 
+		SaturatedConversion, 
+		OpaqueKeys, 
+		ConvertInto,
+	 },
+	transaction_validity::{TransactionSource, TransactionValidity, TransactionPriority},
 	ApplyExtrinsicResult, MultiSignature,
 };
 use sp_std::prelude::*;
@@ -23,6 +33,8 @@ use sp_std::prelude::*;
 use sp_version::NativeVersion;
 use sp_version::RuntimeVersion;
 use frame_system::EnsureRoot;
+use pallet_session::historical as pallet_session_historical;
+use pallet_im_online::sr25519::AuthorityId as ImOnlineId;
 
 // A few exports that help ease life for downstream crates.
 pub use frame_support::{
@@ -37,13 +49,16 @@ pub use frame_support::{
 pub use pallet_balances::Call as BalancesCall;
 pub use pallet_timestamp::Call as TimestampCall;
 pub use pallet_assets::Call as AssetsCall;
+// pub use pallet_iris_asset::Call as IrisAssetsCall;
 use pallet_transaction_payment::CurrencyAdapter;
 #[cfg(any(feature = "std", test))]
 pub use sp_runtime::BuildStorage;
 pub use sp_runtime::{Perbill, Permill};
 
+
 /// Import the template pallet.
-pub use pallet_iris;
+pub use pallet_iris_assets;
+pub use pallet_iris_session;
 
 /// An index to a block.
 pub type BlockNumber = u32;
@@ -88,6 +103,7 @@ pub mod opaque {
 		pub struct SessionKeys {
 			pub aura: Aura,
 			pub grandpa: Grandpa,
+			pub im_online: ImOnline,
 		}
 	}
 }
@@ -202,6 +218,59 @@ impl frame_system::Config for Runtime {
 impl pallet_randomness_collective_flip::Config for Runtime {}
 
 parameter_types! {
+	// TODO: Increase this when done testing
+	pub const MinAuthorities: u32 = 1;
+	pub const MaxDeadSession: u32 = 3;
+}
+
+impl pallet_iris_session::Config for Runtime {
+	type Event = Event;
+	type Call = Call;
+	type AddRemoveOrigin = EnsureRoot<AccountId>;
+	type MinAuthorities = MinAuthorities;
+	type MaxDeadSession = MaxDeadSession;
+	type AuthorityId = pallet_iris_session::crypto::TestAuthId;
+}
+
+parameter_types! {
+	pub const Period: u32 = 1 * MINUTES;
+	pub const Offset: u32 = 0;
+}
+
+impl pallet_session::Config for Runtime {
+	type ValidatorId = <Self as frame_system::Config>::AccountId;
+	type ValidatorIdOf = pallet_iris_session::ValidatorOf<Self>;
+	type ShouldEndSession = pallet_session::PeriodicSessions<Period, Offset>;
+	type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+	type SessionManager = IrisSession;
+	type SessionHandler = <opaque::SessionKeys as OpaqueKeys>::KeyTypeIdProviders;
+	type Keys = opaque::SessionKeys;
+	type WeightInfo = pallet_session::weights::SubstrateWeight<Runtime>;
+	type DisabledValidatorsThreshold = ();
+	type Event = Event;
+}
+
+parameter_types! {
+	pub const ImOnlineUnsignedPriority: TransactionPriority = TransactionPriority::max_value();
+	pub const MaxKeys: u32 = 10_000;
+	pub const MaxPeerInHeartbeats: u32 = 10_000;
+	pub const MaxPeerDataEncodingSize: u32 = 1_000;
+}
+
+impl pallet_im_online::Config for Runtime {
+	type AuthorityId = ImOnlineId;
+	type Event = Event;
+	type NextSessionRotation = pallet_session::PeriodicSessions<Period, Offset>;
+	type ValidatorSet = IrisSession;
+	type ReportUnresponsiveness = IrisSession;
+	type UnsignedPriority = ImOnlineUnsignedPriority;
+	type WeightInfo = pallet_im_online::weights::SubstrateWeight<Runtime>;
+	type MaxKeys = MaxKeys;
+	type MaxPeerInHeartbeats = MaxPeerInHeartbeats;
+	type MaxPeerDataEncodingSize = MaxPeerDataEncodingSize;
+}
+
+parameter_types! {
 	pub const MaxAuthorities: u32 = 32;
 }
 
@@ -262,6 +331,8 @@ impl pallet_balances::Config for Runtime {
 	type WeightInfo = pallet_balances::weights::SubstrateWeight<Runtime>;
 }
 
+
+
 parameter_types! {
 	pub const TransactionByteFee: Balance = 1;
 }
@@ -306,11 +377,10 @@ impl pallet_assets::Config for Runtime {
 ///   inside `create_transaction` function.
 pub type SignedPayload = generic::SignedPayload<Call, SignedExtra>;
 
-/// Configure the pallet-template in pallets/template.
-impl pallet_iris::Config for Runtime {
+/// configure the iris assets pallet
+impl pallet_iris_assets::Config for Runtime {
 	type Event = Event;
 	type Call = Call;
-	type AuthorityId = pallet_iris::crypto::TestAuthId;
 	type Currency = Balances;
 }
 
@@ -377,20 +447,19 @@ construct_runtime!(
 		UncheckedExtrinsic = UncheckedExtrinsic
 	{
 		System: frame_system::{Pallet, Call, Config, Storage, Event<T>},
-		// RandomnessCollectiveFlip: pallet_randomness_collective_flip::{Pallet, Storage},
 		Timestamp: pallet_timestamp::{Pallet, Call, Storage, Inherent},
-		Aura: pallet_aura::{Pallet, Config<T>},
-		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 		Balances: pallet_balances::{Pallet, Call, Storage, Config<T>, Event<T>},
 		TransactionPayment: pallet_transaction_payment::{Pallet, Storage},
 		Sudo: pallet_sudo::{Pallet, Call, Config<T>, Storage, Event<T>},
-		// Include the custom logic from the pallet-template in the runtime.
-		Iris: pallet_iris::{Pallet, Call, Storage, Event<T>},
-		// removed call to make extrinsics uncallable
+		Iris: pallet_iris_assets::{Pallet, Call, Storage, Event<T>},
+		IrisSession: pallet_iris_session::{Pallet, Call, Storage, Event<T>, Config<T>, ValidateUnsigned},
+		Session: pallet_session::{Pallet, Call, Storage, Event, Config<T>},
 		Assets: pallet_assets::{Pallet, Storage, Event<T>},
+		ImOnline: pallet_im_online::{Pallet, Call, Storage, Event<T>, ValidateUnsigned, Config<T>},
+		Aura: pallet_aura::{Pallet, Config<T>},
+		Grandpa: pallet_grandpa::{Pallet, Call, Storage, Config, Event},
 	}
 );
-// Iris: pallet_iris::{Pallet, Call, Storage, Event<T>, ValidateUnsigned},
 
 /// The address format for describing accounts.
 pub type Address = sp_runtime::MultiAddress<AccountId, ()>;
@@ -555,11 +624,9 @@ impl_runtime_apis! {
 	*/
 	impl pallet_iris_rpc_runtime_api::IrisApi<Block> for Runtime {
 		fn retrieve_bytes(
-			public_key: Bytes,
-			signature: Bytes,
 			message: Bytes
 		) -> Bytes {
-			Iris::retrieve_bytes(public_key, signature, message)
+			IrisSession::retrieve_bytes(message)
 		}
 	}
 
@@ -614,7 +681,7 @@ impl_runtime_apis! {
 			add_benchmark!(params, batches, frame_system, SystemBench::<Runtime>);
 			add_benchmark!(params, batches, pallet_balances, Balances);
 			add_benchmark!(params, batches, pallet_timestamp, Timestamp);
-			add_benchmark!(params, batches, pallet_iris, Iris);
+			add_benchmark!(params, batches, pallet_iris_assets, Iris);
 
 			if batches.is_empty() { return Err("Benchmark not found for this pallet.".into()) }
 			Ok(batches)
