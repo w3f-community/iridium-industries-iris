@@ -81,21 +81,19 @@ frame_support::construct_runtime!(
 	}
 );
 
-// pub static V0: (sp_core::sr25519::Public, UintAuthorityId) = (sp_core::sr25519::Pair::generate_with_phrase(Some("0")).0.public(), UintAuthorityId(0));
-// pub static V1: (sp_core::sr25519::Public, UintAuthorityId) = (sp_core::sr25519::Pair::generate_with_phrase(Some("1")).0.public(), UintAuthorityId(1));
-// pub static V2: (sp_core::sr25519::Public, UintAuthorityId) = (sp_core::sr25519::Pair::generate_with_phrase(Some("2")).0.public(), UintAuthorityId(2));
-
 thread_local! {
 	pub static VALIDATORS: RefCell<Vec<(sp_core::sr25519::Public, UintAuthorityId)>> = RefCell::new(
 		vec![(sp_core::sr25519::Pair::generate_with_phrase(Some("0")).0.public(), UintAuthorityId(0)),
 		(sp_core::sr25519::Pair::generate_with_phrase(Some("1")).0.public(), UintAuthorityId(1)),
 		(sp_core::sr25519::Pair::generate_with_phrase(Some("2")).0.public(), UintAuthorityId(2))]);
+
 	pub static NEXT_VALIDATORS: RefCell<Vec<(sp_core::sr25519::Public, UintAuthorityId)>> = RefCell::new(
 		vec![(sp_core::sr25519::Pair::generate_with_phrase(Some("0")).0.public(), UintAuthorityId(0)),
 		(sp_core::sr25519::Pair::generate_with_phrase(Some("1")).0.public(), UintAuthorityId(1)),
 		(sp_core::sr25519::Pair::generate_with_phrase(Some("2")).0.public(), UintAuthorityId(2))]);
+
 	pub static AUTHORITIES: RefCell<Vec<UintAuthorityId>> =
-		RefCell::new(vec![UintAuthorityId(1), UintAuthorityId(2), UintAuthorityId(3)]);
+		RefCell::new(vec![UintAuthorityId(0), UintAuthorityId(1), UintAuthorityId(2)]);
 	pub static FORCE_SESSION_END: RefCell<bool> = RefCell::new(false);
 	pub static SESSION_LENGTH: RefCell<u64> = RefCell::new(2);
 	pub static SESSION_CHANGED: RefCell<bool> = RefCell::new(false);

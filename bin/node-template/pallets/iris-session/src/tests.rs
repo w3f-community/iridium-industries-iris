@@ -263,7 +263,7 @@ fn iris_session_validators_receive_reward_when_add_bytes_to_ipfs() {
 
 // can fetch bytes and add to offchain storage
 #[test]
-fn iris_can_fetch_bytes_and_add_to_offchain_storage() {
+fn iris_session_can_fetch_bytes_and_add_to_offchain_storage() {
 	let (p, _) = sp_core::sr25519::Pair::generate();
 	let (offchain, state) = testing::TestOffchainExt::new();
 	let (pool, _) = testing::TestTransactionPoolExt::new();
