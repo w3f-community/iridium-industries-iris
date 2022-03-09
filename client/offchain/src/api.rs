@@ -379,10 +379,10 @@ mod tests {
 		let mock = Arc::new(TestNetwork());
 		let shared_client = SharedClient::new();
 
-		let options = ::ipfs::IpfsOptions::default();
+		let options = ::ipfs::IpfsOptions::inmemory_with_generated_keys();
 		let mut rt = tokio::runtime::Runtime::new().unwrap();
 		let ipfs_node = rt.block_on(async move {
-			let (ipfs, fut) = ::ipfs::UninitializedIpfs::new(options, None).await.start().await.unwrap();
+			let (ipfs, fut) = ::ipfs::UninitializedIpfs::new(options).start().await.unwrap();
 			tokio::task::spawn(fut);
 			ipfs
 		});
