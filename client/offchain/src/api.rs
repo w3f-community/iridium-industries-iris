@@ -29,11 +29,12 @@ use sp_core::{
 	},
 	OpaquePeerId,
 };
+// use ipfs::{Ipfs, TestTypes};
 pub use sp_offchain::STORAGE_PREFIX;
 
 mod http;
 
-mod ipfs;
+pub mod ipfs;
 
 #[cfg(target_os = "unknown")]
 use http_dummy as http;
@@ -351,6 +352,7 @@ mod tests {
 		convert::{TryFrom, TryInto},
 		time::SystemTime,
 	};
+	// use ipfs::TestTypes;
 
 	struct TestNetwork();
 
@@ -396,7 +398,20 @@ mod tests {
 
 	#[test]
 	fn should_get_timestamp() {
-		let mut api = offchain_api().0;
+		sp_tracing::try_init_simple();
+		let mock = Arc::new(TestNetwork());
+		let shared_client = SharedClient::new();
+
+		let options = ::ipfs::IpfsOptions::inmemory_with_generated_keys();
+		let mut rt = tokio::runtime::Runtime::new().unwrap();
+		let ipfs_node = rt.block_on(async move {
+			let (ipfs, fut): (::ipfs::Ipfs<::ipfs::TestTypes>, _) = ::ipfs::UninitializedIpfs::new(options).start().await.unwrap();
+			tokio::task::spawn(fut);
+			ipfs
+		});
+
+		let (mut api, async_api) = AsyncApi::new(mock, false, shared_client, ipfs_node);
+		// let mut api = offchain_api().0;
 
 		// Get timestamp from std.
 		let now = SystemTime::now();
@@ -417,7 +432,20 @@ mod tests {
 
 	#[test]
 	fn should_sleep() {
-		let mut api = offchain_api().0;
+		sp_tracing::try_init_simple();
+		let mock = Arc::new(TestNetwork());
+		let shared_client = SharedClient::new();
+
+		let options = ::ipfs::IpfsOptions::inmemory_with_generated_keys();
+		let mut rt = tokio::runtime::Runtime::new().unwrap();
+		let ipfs_node = rt.block_on(async move {
+			let (ipfs, fut): (::ipfs::Ipfs<::ipfs::TestTypes>, _) = ::ipfs::UninitializedIpfs::new(options).start().await.unwrap();
+			tokio::task::spawn(fut);
+			ipfs
+		});
+
+		let (mut api, async_api) = AsyncApi::new(mock, false, shared_client, ipfs_node);
+		// let mut api = offchain_api().0;
 
 		// Arrange.
 		let now = api.timestamp();
@@ -502,7 +530,20 @@ mod tests {
 	#[test]
 	fn should_get_random_seed() {
 		// given
-		let mut api = offchain_api().0;
+		sp_tracing::try_init_simple();
+		let mock = Arc::new(TestNetwork());
+		let shared_client = SharedClient::new();
+
+		let options = ::ipfs::IpfsOptions::inmemory_with_generated_keys();
+		let mut rt = tokio::runtime::Runtime::new().unwrap();
+		let ipfs_node = rt.block_on(async move {
+			let (ipfs, fut): (::ipfs::Ipfs<::ipfs::TestTypes>, _) = ::ipfs::UninitializedIpfs::new(options).start().await.unwrap();
+			tokio::task::spawn(fut);
+			ipfs
+		});
+
+		let (mut api, async_api) = AsyncApi::new(mock, false, shared_client, ipfs_node);
+		// let mut api = offchain_api().0;
 		let seed = api.random_seed();
 		// then
 		assert_ne!(seed, [0; 32]);
